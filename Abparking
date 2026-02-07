@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>A.B. PARKING YMS v26</title>
+    <style>
+        /* --- GLOBAL THEME --- */
+        :root { --primary: #000080; --bg: #f4f7f6; --text: #000; --success: #28a745; --danger: #dc3545; --warning: #ff9800; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: var(--bg); color: var(--text); -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; overflow-x: hidden; }
+
+        /* --- LOGIN SCREEN (ALWAYS VISIBLE FIRST) --- */
+        #login-view { 
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+            background: linear-gradient(135deg, #0f2027, #2c5364); 
+            display: flex; flex-direction: column; justify-content: center; align-items: center; 
+            z-index: 9999; color: white;
+        }
+        .login-box { 
+            background: rgba(255,255,255,0.95); padding: 40px; border-radius: 15px; 
+            text-align: center; width: 85%; max-width: 300px; color: #333;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .login-input { padding: 12px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; margin-bottom: 15px; width: 100%; box-sizing: border-box; text-align: center; }
+        .login-btn { padding: 12px 30px; background: var(--primary); color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 16px; width: 100%; }
+        .forgot-link { color: #ccc; font-size: 12px; text-decoration: underline; margin-top: 15px; cursor: pointer; display: block; }
+
+        /* --- DASHBOARD --- */
+        #dashboard-view { padding: 15px; padding-bottom: 90px; background: #fff; min-height: 100vh; width: 100vw; box-sizing: border-box; display: none; }
+        
+        .app-header { 
+            background: var(--primary); color: white; padding: 20px; 
+            border-radius: 15px; margin-bottom: 20px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .header-left h1 { margin: 0; font-family: 'Impact', sans-serif; letter-spacing: 1px; font-weight: normal; font-size: 22px; }
+        .header-left p { margin: 5px 0 0; opacity: 0.8; font-size: 11px; font-family: monospace; }
+        .btn-logout { background: var(--danger); color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 10px; cursor: pointer; font-weight: bold; }
+        .btn-new-entry { background: white; color: var(--primary); border: none; padding: 10px 15px; border-radius: 8px; font-weight: 900; font-size: 12px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); text-transform: uppercase; margin-top: 10px; width: 100%; }
+
+        /* CONTROLS */
+        .controls-row { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .search-bar { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; background: #f9f9f9; }
+        .btn-dash { border: none; border-radius: 8px; padding: 10px 15px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; flex: 1; min-width: 80px; }
+        .btn-excel { background: var(--success); }
+        .btn-stock { background: #ffc107; color: black; }
+        .btn-hr { background: #ff5722; }
+        .admin-only { display: none; }
+
+        /* REPORT CARD */
+        .report-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .report-card { background: #222; color: white; padding: 15px; border-radius: 10px; text-align: center; }
+        .rc-val { font-size: 20px; font-weight: bold; color: #ffeb3b; display: block; }
+        .rc-lbl { font-size: 10px; opacity: 0.7; text-transform: uppercase; }
+
+        .vehicle-card { background: white; padding: 15px; border-radius: 12px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 5px solid var(--primary); display: flex; justify-content: space-between; align-items: center; position: relative; border: 1px solid #eee; }
+        .vehicle-card.released { border-left-color: var(--danger); opacity: 0.7; }
+        .vc-info h3 { margin: 0 0 5px; color: var(--primary); font-size: 16px; }
+        .vc-info p { margin: 0; font-size: 12px; color: #666; }
+        .vc-status-badge { position: absolute; top: 10px; right: 10px; font-size: 10px; background: #eee; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+        .released .vc-status-badge { background: var(--danger); color: white; }
+        .vc-actions { display: flex; flex-direction: column; gap: 5px; min-width: 70px; }
+        .btn-mini { padding: 6px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; border: none; color: white; cursor: pointer; }
+        .btn-edit { background: #555; } .btn-bill { background: var(--success); } .btn-exit { background: var(--danger); }
+        .btn-del { background: #000; }
+
+        .fab { position: fixed; bottom: 25px; right: 25px; background: var(--primary); color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); cursor: pointer; z-index: 1000; }
+
+        /* --- VIEW CONTAINERS --- */
+        #editor-view, #invoice-view, #gatepass-view, #stock-view, #hr-view, #salary-view { display: none; background: #fff; min-height: 100vh; padding-bottom: 50px; width: 100%; position: absolute; top:0; left:0; }
+        
+        .toolbar { background: #222; color: white; padding: 10px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 2000; box-shadow: 0 2px 5px rgba(0,0,0,0.5); width: 100%; box-sizing: border-box; }
+        .btn-tool { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+        .btn-primary { background: var(--primary); border: none; }
+
+        .zoom-controls { position: sticky; top: 50px; left: 0; right: 0; background: rgba(0,0,0,0.8); color: white; padding: 5px 15px; z-index: 1900; display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
+        .zoom-slider { width: 150px; }
+
+        .paper-scroll { width: 100%; overflow: auto; padding: 10px 0; box-sizing: border-box; transform-origin: top left; }
+
+        /* --- PAPER FORMAT --- */
+        .page-container { width: 210mm; min-width: 210mm; height: 290mm; background: white; margin: 0 auto 20px auto; padding: 15px 25px; box-sizing: border-box; position: relative; border: 1px solid #000; overflow: hidden; margin-left: 0; }
+        .bill-container { width: 210mm; min-width: 210mm; min-height: 148mm; background: white; margin: 0 0 20px 0; padding: 30px 40px; box-sizing: border-box; border: 1px solid #000; position: relative; }
+        .invoice-page { width: 210mm; min-width: 210mm; height: 290mm; background: white; margin: 0 0 20px 0; box-sizing: border-box; position: relative; border: 1px solid #000; overflow: hidden; padding: 10px; display: flex; flex-direction: column; justify-content: space-between; }
+        .half-bill { height: 48%; border: 2px solid #000; padding: 20px; box-sizing: border-box; position: relative; }
+        .cut-line { border-top: 2px dashed #000; position: relative; top: -5px; }
+
+        /* --- PRINT CSS --- */
+        @page { size: A4; margin: 0; }
+        @media print {
+            body { background: white; margin: 0; padding: 0; overflow: hidden; height: 100%; transform: scale(1) !important; zoom: 1 !important; }
+            #login-view, #dashboard-view, #stock-view, #hr-view, .toolbar, .zoom-controls { display: none !important; }
+            .paper-scroll { overflow: visible; padding: 0; display: block; width: 100%; height: 100%; transform: none !important; }
+            
+            /* FORCE VISIBILITY FOR PRINTING */
+            body.print-inventory #editor-view { display: block !important; visibility: visible; }
+            body.print-inventory #invoice-view, body.print-inventory #gatepass-view, body.print-inventory #salary-view { display: none !important; }
+            
+            body.print-invoice #invoice-view { display: block !important; visibility: visible; }
+            body.print-invoice #editor-view, body.print-invoice #gatepass-view, body.print-invoice #salary-view { display: none !important; }
+            
+            body.print-pass #gatepass-view { display: block !important; visibility: visible; }
+            body.print-pass #editor-view, body.print-pass #invoice-view, body.print-pass #salary-view { display: none !important; }
+
+            body.print-salary #salary-view { display: block !important; visibility: visible; }
+            body.print-salary #editor-view, body.print-salary #invoice-view, body.print-salary #gatepass-view { display: none !important; }
+
+            .page-container, .invoice-page { margin: 0; border: none; width: 100%; height: 290mm; page-break-after: always; overflow: hidden; margin-left: 0; }
+            .page-container:last-child, .invoice-page:last-child { page-break-after: auto; }
+            .bill-container { margin: 0; border: none; width: 100%; min-height: auto; page-break-after: avoid; }
+            
+            input[type="text"], input[type="number"] { border-bottom: 1px dotted #000 !important; border-top:none; border-left:none; border-right:none; background:transparent; }
+            .watermark { opacity: 0.15 !important; color: #000 !important; }
+        }
+
+        /* --- FORM ELEMENTS --- */
+        
+        .watermark { 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); 
+            width: 700px; pointer-events: none; z-index: 0; opacity: 0.15;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            color: #000; font-weight: 900; 
+            /* Digital Style Border */
+            border: 4px dashed #000;
+            outline: 2px solid #000;
+            outline-offset: 10px;
+            padding: 30px;
+            border-radius: 10px;
+        }
+        .watermark-text { 
+            font-family: 'Arial Black', Impact, sans-serif; font-size: 55px; 
+            white-space: nowrap; line-height: 1; margin-top: 15px;
+            text-transform: uppercase; letter-spacing: 2px;
+        }
+        .watermark svg { width: 350px; fill: #000; margin-bottom: -10px; }
+        
+        .copy-label { position: absolute; top: 15px; right: 15px; z-index: 5; }
+        .copy-text { font-size: 12px; font-weight: 900; border: 2px solid #000; padding: 4px 10px; background: #fff; box-shadow: 3px 3px 0 #000; }
+
+        /* SL NO (FIXED LEFT) */
+        .sl-no-container { position: absolute; top: 30px; left: 30px; z-index: 5; display: flex; flex-direction: column; align-items: flex-start; }
+        .sl-no-text { font-size: 11px; font-weight: 900; color: #000; margin-bottom: 2px; text-decoration: underline; }
+        .sl-input { width: 60px; font-weight: 900; color: #d9534f; font-size: 13px; border: none; border-bottom: 2px solid #000; background: transparent; font-family: 'Courier New', monospace; text-align: left; height: 16px; }
+        
+        .qr-box { position: absolute; top: 55px; right: 25px; z-index: 5; }
+        .qr-img { width: 75px; height: 75px; border: 1px solid #000; padding: 2px; background: white; display: block; }
+
+        /* HEADER */
+        .header { text-align: center; border-bottom: 4px solid #000; margin-bottom: 10px; padding-bottom: 8px; margin-top: 5px; position: relative; z-index: 1; }
+        .header h1 { color: #000; font-family: 'Arial Black', 'Impact', sans-serif; font-size: 44px; margin: 0; letter-spacing: 2px; text-transform: uppercase; text-shadow: 3px 3px 0px #ccc; line-height: 1; }
+        .sub-header { font-size: 16px; font-weight: 900; letter-spacing: 5px; background: #000; color: #fff; display: inline-block; padding: 5px 30px; margin: 8px 0; font-family: 'Courier New', monospace; border-radius: 0; clip-path: polygon(10px 0, 100% 0, 100% 100%, 0% 100%); }
+        .address { font-size: 11px; color: #000; line-height: 1.4; font-weight: bold; font-family: 'Segoe UI', sans-serif; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .main-row { display: flex; gap: 15px; position: relative; z-index: 1; }
+        .col-left { width: 50%; } .col-right { width: 50%; }
+        .field-row { display: flex; align-items: center; margin-bottom: 2px; font-size: 11px; font-weight: bold; }
+        .label { width: 140px; flex-shrink: 0; }
+        
+        input[type="text"] { border: none; border-bottom: 1px dotted #999; background: transparent; font-family: 'Courier New', monospace; font-size: 11px; font-weight: bold; color: #000; flex-grow: 1; height: 16px; outline: none; width: 100%; }
+        
+        .yn-group { display: flex; gap: 5px; align-items: center; height: 16px; margin-right: 5px; }
+        .yn-group label { cursor: pointer; display: flex; align-items: center; gap:2px; white-space: nowrap; font-size: 10px; }
+        .yn-group input[type="radio"] { appearance: none; width: 12px; height: 12px; border: 1px solid #000; border-radius: 2px; background: #fff; margin: 0; display: flex; justify-content: center; align-items: center; }
+        .yn-group input[type="radio"]:checked::after { content: '✔'; font-size: 12px; color: #000; font-weight: bold; line-height: 1; }
+        .yn-group input[value="no"]:checked::after, .yn-group input[value="na"]:checked::after, .yn-group input[value="n"]:checked::after { content: '✖'; font-size: 10px; }
+
+        .section-title { text-decoration: underline; font-weight: 900; margin-top: 6px; margin-bottom: 4px; display: block; font-size: 11px; }
+
+        .tyre-header { display: flex; font-weight: 900; font-size: 10px; border-bottom: 1px solid #000; padding-bottom: 2px; margin-top: 5px; }
+        .tyre-row-complex { display: flex; align-items: center; height: 18px; border-bottom: 1px solid #ccc; }
+        .col-1-pos { width: 75px; flex-shrink: 0; font-weight: bold; font-size: 10px; } 
+        .col-2-stat { width: 65px; flex-shrink: 0; } 
+        .col-3-make { width: 110px; flex-shrink: 0; text-align: center; margin: 0 auto; }
+        .col-4-cond { width: 60px; flex-shrink: 0; text-align: right; }
+        .tyre-make-input { width: 105px !important; text-align: center; border-bottom: none !important; } 
+        .tyre-cond-select { width: 60px; font-size: 9px; font-weight: bold; border: none; background: transparent; }
+
+        .extra-items-grid { display: flex; gap: 10px; margin-top: 5px; } .extra-col { width: 50%; }
+        .extra-item-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; border-bottom: 1px solid #ccc; height: 18px; }
+        .item-name { font-size: 10px; font-weight: bold; width: 60px; flex-shrink: 0; }
+        .qty-input { width: 25px !important; text-align: center; }
+
+        .disclaimer { margin-top: 8px; border: 1px solid #000; padding: 4px; font-size: 10px; text-align: justify; }
+        .warning { text-align: center; font-weight: 900; margin-top: 1px; font-size: 11px; }
+        .signatures { margin-top: 15px; display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; }
+        .sig-box { width: 32%; border-top: 1px solid #000; padding-top: 5px; line-height: 1.4; }
+
+        .bill-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+        .bill-table th, .bill-table td { border: 1px solid #000; padding: 5px; text-align: center; }
+        .bill-input { width: 60px; border: none; border-bottom: 1px dotted #999; text-align: center; font-family: monospace; font-weight: bold; font-size: 12px; }
+        .bill-total { text-align: right; font-size: 16px; font-weight: 900; padding-top: 10px; border-top: 2px solid #000; margin-top: 5px; }
+        
+        .pass-content { border: 2px dashed #000; padding: 20px; margin-top: 20px; }
+        .release-input { font-size: 14px; font-weight: bold; border: none; border-bottom: 2px solid #000; width: 200px; outline: none; background: transparent; }
+        
+        .stock-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .stock-card { background: white; padding: 15px; border-radius: 10px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .stock-num { font-size: 24px; font-weight: 900; color: var(--primary); display: block; }
+        .stock-lbl { font-size: 10px; color: #666; text-transform: uppercase; }
+        
+        .designer-credit { text-align: center; font-size: 10px; color: #aaa; margin-top: 20px; font-weight: bold; font-family: monospace; }
+        
+        /* HR */
+        .hr-card { background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 10px; }
+        .hr-input { width: 100%; padding: 8px; margin-bottom: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .emp-list-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
+    </style>
+</head>
+<body>
+
+    <div id="login-view">
+        <div class="login-box">
+            <h2 style="margin-top:0;">A.B. PARKING</h2>
+            <p style="margin-bottom:20px;">Yard Management System</p>
+            <input type="tel" id="loginUser" class="login-input" placeholder="Mobile Number">
+            <input type="password" id="loginPass" class="login-input" placeholder="Password">
+            <button class="login-btn" onclick="attemptLogin()">LOGIN</button>
+            <span class="forgot-link" onclick="forgotPassword()">Forgot Password?</span>
+        </div>
+    </div>
+
+    <div id="dashboard-view">
+        <div class="app-header">
+            <div class="header-left">
+                <h1>A.B. PARKING YMS</h1>
+                <p>Yard Management System v25.0</p>
+                <span class="user-badge" id="user-role-badge">USER</span>
+            </div>
+            <button class="btn-logout" onclick="doLogout()">LOGOUT</button>
+        </div>
+
+        <div class="report-grid">
+            <div class="report-card"><span class="rc-val" id="today-entries">0</span><span class="rc-lbl">Today's Entries</span></div>
+            <div class="report-card"><span class="rc-val" id="today-exits" style="color:#ff5722;">0</span><span class="rc-lbl">Today's Exits</span></div>
+            <div class="report-card"><span class="rc-val" id="today-cash" style="color:var(--success);">₹0</span><span class="rc-lbl">Today's Cash</span></div>
+        </div>
+        
+        <button class="btn-new-entry" onclick="openEditor(true)">+ NEW ENTRY</button>
+
+        <div class="controls-row" style="margin-top:15px;">
+            <input type="text" id="searchBox" class="search-bar" placeholder="🔍 Search Regn / Name..." onkeyup="filterVehicles()">
+            <button class="btn-dash btn-excel admin-only" onclick="downloadExcel()">📊 Excel</button>
+            <button class="btn-dash btn-stock" onclick="showStockView()">📈 Stock</button>
+            <button class="btn-dash btn-hr" onclick="showHRView()">👥 HR</button>
+        </div>
+        <div id="vehicle-list"></div>
+        <div class="designer-credit">Designed by AJ GOLDER</div>
+    </div>
+
+    <div id="stock-view">
+        <div class="app-header"><div class="header-left"><h1>STOCK REPORT</h1></div></div>
+        <button class="btn-tool" style="background:#444; color:white; margin-bottom:15px;" onclick="showDashboard()">← Back</button>
+        <div class="stock-grid">
+            <div class="stock-card"><span class="stock-num" id="total-count">0</span><span class="stock-lbl">Total Logged</span></div>
+            <div class="stock-card"><span class="stock-num" style="color:var(--danger)" id="exit-count">0</span><span class="stock-lbl">Released</span></div>
+            <div class="stock-card"><span class="stock-num" style="color:var(--success)" id="yard-count">0</span><span class="stock-lbl">In Yard</span></div>
+        </div>
+    </div>
+
+    <div id="hr-view">
+        <div class="app-header"><div class="header-left"><h1>HR & STAFF</h1></div></div>
+        <button class="btn-tool" style="background:#444; color:white; margin-bottom:15px;" onclick="showDashboard()">← Back</button>
+        
+        <div class="hr-card admin-only">
+            <h3>Add Employee</h3>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
+                <input type="tel" id="emp-mobile" class="hr-input" placeholder="Mobile (User)">
+                <input type="text" id="emp-pass" class="hr-input" placeholder="Password">
+                <input type="text" id="emp-name" class="hr-input" placeholder="Name">
+                <input type="number" id="emp-sal" class="hr-input" placeholder="Salary">
+            </div>
+            <button class="btn-mini" style="background:var(--primary); width:100%; margin-top:5px;" onclick="addEmployee()">CREATE USER</button>
+        </div>
+
+        <div class="hr-card">
+            <h3>Attendance (GPS)</h3>
+            <button class="btn-new-entry" style="background:var(--success); color:white; margin-top:0;" onclick="markAttendance()">📍 Check In</button>
+            <div id="att-msg" style="font-size:11px; margin-top:5px; color:green;"></div>
+        </div>
+
+        <div class="hr-card">
+            <h3>Employee List</h3>
+            <div id="emp-list"></div>
+        </div>
+    </div>
+
+    <div id="editor-view">
+        <div class="toolbar">
+            <button class="btn-tool" onclick="showDashboard()">← Back</button>
+            <span>INVENTORY</span>
+            <div>
+                <button class="btn-tool btn-primary" onclick="saveData()">Save</button>
+                <button class="btn-tool" onclick="printMode('inventory')">Print</button>
+            </div>
+        </div>
+        <div class="zoom-controls"><span>Zoom:</span><input type="range" class="zoom-slider" min="0.3" max="1.2" step="0.1" value="0.4" oninput="changeZoom(this.value)"></div>
+        <div class="paper-scroll"><div id="forms-container" style="transform-origin:top left; transform: scale(0.4);"></div></div>
+    </div>
+
+    <div id="invoice-view">
+        <div class="toolbar">
+            <button class="btn-tool" onclick="showDashboard()">← Back</button>
+            <span>GST INVOICE</span>
+            <button class="btn-tool btn-primary" onclick="printMode('invoice')">Print Bill</button>
+        </div>
+        <div class="paper-scroll"><div class="invoice-page" id="bill-content" style="transform-origin:top left; transform: scale(0.4);"></div></div>
+    </div>
+
+    <div id="gatepass-view">
+        <div class="toolbar">
+            <button class="btn-tool" onclick="showDashboard()">← Back</button>
+            <span>GATE PASS</span>
+            <div>
+                <button class="btn-tool" style="background:var(--success)" onclick="markAsReleased()">✔ Release</button>
+                <button class="btn-tool btn-primary" onclick="printMode('pass')">Print</button>
+            </div>
+        </div>
+        <div class="paper-scroll"><div class="bill-container" id="pass-content" style="transform-origin:top left; transform: scale(0.4);"></div></div>
+    </div>
+
+    <div id="salary-view">
+        <div class="toolbar">
+            <button class="btn-tool" onclick="showHRView()">← Back</button>
+            <span>SALARY SLIP</span>
+            <button class="btn-tool btn-primary" onclick="printMode('salary')">Print</button>
+        </div>
+        <div class="paper-scroll"><div class="bill-container" id="salary-content" style="transform-origin:top left; transform: scale(0.4);"></div></div>
+    </div>
+
+<script>
+    let defaultUsers = [
+        { u: '8371002727', p: '1234', n: 'Administrator', r: 'admin' },
+        { u: '9332443461', p: '0000', n: 'Staff', r: 'user' }
+    ];
+    let users = JSON.parse(localStorage.getItem('ab_users')) || defaultUsers;
+    let currentUser = null;
+
+    let vehicles = JSON.parse(localStorage.getItem('ab_vehicles')) || [];
+    let employees = JSON.parse(localStorage.getItem('ab_employees')) || [];
+    let currentIndex = -1;
+    let currentView = localStorage.getItem('ab_current_view') || 'dashboard';
+
+    const vehicleDatabase = {
+        "WB26S1510": { name: "JASIM MONDAL", ag: "AG-2023-001", chassis: "MAT456123999", engine: "497SP23456", make: "Tata Motors", model: "Ace", sizedBy: "HDFC Bank Ltd" },
+        "WB26BE1234": { name: "Amit Kumar", ag: "AG-2024-555", chassis: "MA123456789", engine: "ENG98765432", make: "Mahindra", model: "Bolero Pickup", sizedBy: "Cholamandalam Investment" }
+    };
+
+    window.onload = function() { 
+        // Force login view display on load if no session
+        const session = JSON.parse(localStorage.getItem('ab_session'));
+        if (session && (Date.now() < session.expiry)) {
+            currentUser = session.user;
+            refreshSession();
+            startApp();
+        } else {
+            document.getElementById('login-view').style.display = 'flex';
+        }
+    };
+
+    function attemptLogin() {
+        const u = document.getElementById('loginUser').value;
+        const p = document.getElementById('loginPass').value;
+        const user = users.find(x => x.u === u && x.p === p);
+        if (user) {
+            currentUser = user;
+            refreshSession();
+            startApp();
+        } else {
+            alert("Invalid Mobile or Password");
+        }
+    }
+
+    function forgotPassword() {
+        const mobile = prompt("Please enter your Mobile Number:");
+        if (mobile) {
+            const user = users.find(x => x.u === mobile);
+            if (user) {
+                alert("OTP Sent to " + mobile + ": 8822 (Simulation)");
+                const otp = prompt("Enter OTP:");
+                if (otp === "8822") {
+                    alert("Your Password is: " + user.p);
+                } else {
+                    alert("Invalid OTP");
+                }
+            } else {
+                alert("Mobile number not registered.");
+            }
+        }
+    }
+
+    function refreshSession() {
+        localStorage.setItem('ab_session', JSON.stringify({ user: currentUser, expiry: Date.now() + (30 * 60 * 1000) }));
+    }
+
+    function doLogout() {
+        localStorage.removeItem('ab_session');
+        location.reload();
+    }
+
+    function startApp() {
+        document.getElementById('login-view').style.display = 'none';
+        
+        if(currentUser.r === 'admin') document.querySelectorAll('.admin-only').forEach(e => e.style.display = 'block');
+        else document.querySelectorAll('.admin-only').forEach(e => e.style.display = 'none');
+
+        generateTriplicateForms();
+        renderList();
+        updateReportStats();
+        
+        if(currentView === 'editor') {
+            let savedIdx = localStorage.getItem('ab_current_index');
+            if(savedIdx !== null && savedIdx !== "-1") loadVehicle(parseInt(savedIdx));
+            else openEditor(false);
+        } else if (currentView === 'hr') {
+            showHRView();
+        } else {
+            showDashboard();
+        }
+        autoFitScreen();
+        
+        setInterval(() => {
+            const session = JSON.parse(localStorage.getItem('ab_session'));
+            if (!session || Date.now() > session.expiry) doLogout();
+        }, 60000);
+    }
+
+    function saveState(view, idx) {
+        refreshSession();
+        currentView = view;
+        currentIndex = idx;
+        localStorage.setItem('ab_current_view', view);
+        localStorage.setItem('ab_current_index', idx);
+    }
+
+    function changeZoom(val) {
+        document.getElementById('forms-container').style.transform = `scale(${val})`;
+        document.getElementById('bill-content').style.transform = `scale(${val})`;
+        document.getElementById('pass-content').style.transform = `scale(${val})`;
+        document.getElementById('salary-content').style.transform = `scale(${val})`;
+        const h = 296 * 3.8 * val;
+        document.querySelector('.paper-scroll').style.height = h + 'px';
+    }
+
+    function autoFitScreen() {
+        const w = window.innerWidth;
+        const formW = 800;
+        let scale = w / formW;
+        if(scale > 1) scale = 1; if(scale < 0.3) scale = 0.3;
+        document.querySelectorAll('.zoom-slider').forEach(s => s.value = scale);
+        changeZoom(scale);
+    }
+
+    function updateReportStats() {
+        const today = new Date().toLocaleDateString('en-GB');
+        const entries = vehicles.filter(v => v.date === today).length;
+        const exits = vehicles.filter(v => v.exitDate === today).length;
+        let cash = 0;
+        vehicles.forEach(v => {
+            if(v.exitDate === today && v.finalBillAmount) cash += parseInt(v.finalBillAmount);
+        });
+
+        document.getElementById('today-entries').innerText = entries;
+        document.getElementById('today-exits').innerText = exits;
+        document.getElementById('today-cash').innerText = "₹" + cash;
+    }
+
+    function renderList() {
+        const list = document.getElementById('vehicle-list');
+        list.innerHTML = '';
+        if(vehicles.length === 0) { list.innerHTML = '<div style="text-align:center; padding:40px; color:#999;">No vehicles found.</div>'; return; }
+        vehicles.slice().reverse().forEach((v, index) => {
+            const rIndex = vehicles.length - 1 - index;
+            const isReleased = v.status === 'Released';
+            const card = document.createElement('div');
+            card.className = `vehicle-card ${isReleased ? 'released' : ''}`;
+            
+            const delBtn = currentUser.r === 'admin' ? `<button class="btn-mini btn-del admin-only" onclick="deleteVehicle(${rIndex}); event.stopPropagation();" style="display:inline-block; background:#000; margin-top:5px;">DELETE</button>` : '';
+
+            card.innerHTML = `<div class="vc-info" onclick="loadVehicle(${rIndex})"><span class="vc-status-badge">${v.status || 'In Yard'}</span><h3>${v.regn || 'NO REGN'}</h3><p><strong>${v.name || 'Unknown'}</strong></p><p>SL: ${v.sl} | ${v.date}</p></div><div class="vc-actions"><button class="btn-mini btn-edit" onclick="loadVehicle(${rIndex})">Edit</button><button class="btn-mini btn-bill" onclick="openInvoice(${rIndex})">Bill</button><button class="btn-mini btn-exit" onclick="openGatePass(${rIndex})">Exit</button>${delBtn}</div>`;
+            list.appendChild(card);
+        });
+    }
+
+    function deleteVehicle(index) {
+        if(confirm("Are you sure?")) {
+            vehicles.splice(index, 1);
+            localStorage.setItem('ab_vehicles', JSON.stringify(vehicles));
+            renderList();
+            updateReportStats();
+        }
+    }
+
+    function filterVehicles() {
+        const q = document.getElementById('searchBox').value.toLowerCase();
+        document.querySelectorAll('.vehicle-card').forEach(c => c.style.display = c.innerText.toLowerCase().includes(q) ? 'flex' : 'none');
+    }
+
+    function showStockView() {
+        document.getElementById('dashboard-view').style.display = 'none';
+        document.getElementById('stock-view').style.display = 'block';
+        const total = vehicles.length;
+        const released = vehicles.filter(v => v.status === 'Released').length;
+        document.getElementById('total-count').innerText = total;
+        document.getElementById('exit-count').innerText = released;
+        document.getElementById('yard-count').innerText = total - released;
+        saveState('stock', -1);
+    }
+
+    // --- HR ---
+    function showHRView() {
+        ['editor-view','invoice-view','gatepass-view','stock-view','dashboard-view','salary-view'].forEach(id => document.getElementById(id).style.display = 'none');
+        document.getElementById('hr-view').style.display = 'block';
+        renderEmployeeList();
+        saveState('hr', -1);
+    }
+
+    function addEmployee() {
+        const u = document.getElementById('emp-mobile').value;
+        const p = document.getElementById('emp-pass').value;
+        const n = document.getElementById('emp-name').value;
+        const s = document.getElementById('emp-sal').value;
+        if(u && p && n) {
+            users.push({ u: u, p: p, n: n, r: 'user', salary: s });
+            localStorage.setItem('ab_users', JSON.stringify(users));
+            renderEmployeeList();
+            alert("User Created!");
+        } else alert("Fill all fields");
+    }
+
+    function renderEmployeeList() {
+        const list = document.getElementById('emp-list');
+        list.innerHTML = '';
+        users.forEach((e) => {
+            if(e.r === 'user') {
+                list.innerHTML += `<div class="emp-list-item"><div><strong>${e.n}</strong><br><span style="font-size:10px;">${e.u}</span></div><div>₹${e.salary || 0} <button class="btn-mini btn-bill" onclick="openSalary('${e.u}')">Salary</button></div></div>`;
+            }
+        });
+    }
+
+    function markAttendance() {
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                const link = `http://maps.google.com/maps?q=${lat},${lng}`;
+                const now = new Date().toLocaleString();
+                document.getElementById('att-msg').innerHTML = `✅ Marked: ${now} <br> <a href="${link}" target="_blank" class="loc-tag">View Location</a>`;
+            }, function(error) {
+                alert("Location access denied. Please enable GPS.");
+            });
+        } else {
+            alert("Geolocation not supported");
+        }
+    }
+
+    function openSalary(mobile) {
+        const e = users.find(u => u.u === mobile);
+        document.getElementById('salary-content').innerHTML = `
+            <div class="header"><h1>A.B. PARKING CENTRE</h1><div class="sub-header">SALARY SLIP</div><div class="address">HISABI, AWALSIDDHI, AMDANGA, NORTH 24 PARGANAS</div></div>
+            <div style="margin-top:20px; font-family:monospace;">
+                <p><strong>Employee Name:</strong> ${e.n}</p>
+                <p><strong>Mobile:</strong> ${e.u}</p>
+                <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+                <hr>
+                <table class="bill-table" style="width:100%">
+                    <tr><th>Earnings</th><th>Amount</th><th>Deductions</th><th>Amount</th></tr>
+                    <tr><td>Basic Salary</td><td>${e.salary}</td><td>PF/Tax</td><td>0</td></tr>
+                    <tr><td>Allowances</td><td>0</td><td>Advance</td><td>0</td></tr>
+                    <tr style="font-weight:bold; background:#eee;"><td>GROSS TOTAL</td><td>${e.salary}</td><td>NET PAYABLE</td><td>${e.salary}</td></tr>
+                </table>
+                <br><br><br>
+                <div style="display:flex; justify-content:space-between;">
+                    <span>Employee Sig</span>
+                    <span>Director Sig</span>
+                </div>
+            </div>
+        `;
+        ['hr-view'].forEach(id => document.getElementById(id).style.display = 'none');
+        document.getElementById('salary-view').style.display = 'block';
+        autoFitScreen();
+    }
+
+    function showDashboard() {
+        document.body.className = '';
+        ['editor-view','invoice-view','gatepass-view','stock-view','hr-view','salary-view'].forEach(id => document.getElementById(id).style.display = 'none');
+        document.getElementById('dashboard-view').style.display = 'block';
+        saveState('dashboard', -1);
+        renderList();
+        updateReportStats();
+    }
+
+    // --- EDITOR ---
+    function openEditor(isNew) {
+        document.getElementById('dashboard-view').style.display = 'none';
+        document.getElementById('editor-view').style.display = 'block';
+        autoFitScreen();
+        
+        if(isNew) {
+            currentIndex = -1;
+            saveState('editor', -1);
+            document.querySelectorAll('input[type="text"]').forEach(i => { if(!i.classList.contains('sync-sl')) i.value = ''; });
+            document.querySelectorAll('input[type="radio"]').forEach(r => r.checked = false);
+            
+            fillAll('def-cond', 'As per Condition');
+            fillAll('def-park', "Company's authorised godown");
+            fillAll('sync-keeper', currentUser.n); 
+
+            const now = new Date();
+            fillAll('sync-date', now.toLocaleDateString('en-GB'));
+            fillAll('sync-time', now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: true}));
+            
+            let lastSl = localStorage.getItem('ab_parking_sl_no') || "ABPC-0000";
+            let parts = lastSl.split('-');
+            let num = 1;
+            if(parts.length > 1) num = parseInt(parts[1]) + 1;
+            let newSl = "ABPC-" + String(num).padStart(4, '0');
+            fillAll('sync-sl', newSl);
+            
+            generateQR();
+        }
+    }
+
+    function loadVehicle(idx) {
+        currentIndex = idx;
+        saveState('editor', idx);
+        document.getElementById('dashboard-view').style.display = 'none';
+        document.getElementById('editor-view').style.display = 'block';
+        autoFitScreen();
+        const v = vehicles[idx];
+        fillAll('sync-sl', v.sl); fillAll('sync-regn', v.regn); fillAll('sync-name', v.name);
+        fillAll('sync-date', v.date); fillAll('sync-time', v.time); fillAll('sync-ag', v.ag || '');
+        fillAll('sync-make', v.make || ''); fillAll('sync-model', v.model || '');
+        fillAll('sync-chassis', v.chassis || ''); fillAll('sync-engine', v.engine || '');
+        fillAll('sync-sized-by', v.sizedBy || '');
+        fillAll('sync-keeper', v.keeper || currentUser.n); 
+        updateModels(v.make);
+        generateQR();
+    }
+
+    function saveData() {
+        const sl = document.querySelector('.sync-sl').value;
+        const regn = document.querySelector('.sync-regn').value;
+        const name = document.querySelector('.sync-name').value;
+        // ... gather all other fields ...
+        const date = document.querySelector('.sync-date').value;
+        const time = document.querySelector('.sync-time').value;
+        const make = document.querySelector('.sync-make').value;
+        const model = document.querySelector('.sync-model').value;
+        const chassis = document.querySelector('.sync-chassis').value;
+        const engine = document.querySelector('.sync-engine').value;
+        const ag = document.querySelector('.sync-ag').value;
+        const sizedBy = document.querySelector('.sync-sized-by').value;
+        const keeper = document.querySelector('.sync-keeper').value;
+        
+        let currentStatus = currentIndex > -1 ? (vehicles[currentIndex].status || 'In Yard') : 'In Yard';
+        if(!regn) { alert("Registration Number Required"); return; }
+
+        const entry = { sl, regn, name, date, time, make, model, chassis, engine, ag, sizedBy, keeper, status: currentStatus };
+
+        if(currentIndex > -1) vehicles[currentIndex] = entry;
+        else { 
+            vehicles.push(entry); 
+            localStorage.setItem('ab_parking_sl_no', sl); 
+        }
+        
+        localStorage.setItem('ab_vehicles', JSON.stringify(vehicles));
+        alert("Saved!");
+    }
+
+    function markAsReleased() {
+        if(currentIndex === -1) return;
+        const amt = prompt("Amount Collected (Cash)?", "0");
+        if(amt !== null) {
+            vehicles[currentIndex].status = 'Released';
+            vehicles[currentIndex].exitDate = new Date().toLocaleDateString('en-GB');
+            vehicles[currentIndex].finalBillAmount = amt;
+            localStorage.setItem('ab_vehicles', JSON.stringify(vehicles));
+            updateReportStats();
+            alert("Released. Cash Added to Daily Report.");
+        }
+    }
+
+    function downloadExcel() {
+        if(vehicles.length === 0) { alert("No data"); return; }
+        let csv = "SL,Regn,Name,Date,Time,Status,Make,Model,Chassis,Engine,Agreement,Sized By,Godown Keeper,Exit Date,Collected Amount\n";
+        vehicles.forEach(v => { csv += `${v.sl},${v.regn},${v.name},${v.date},${v.time},${v.status||'In Yard'},${v.make},${v.model},${v.chassis},${v.engine},${v.ag||''},${v.sizedBy||''},${v.keeper||''},${v.exitDate||''},${v.finalBillAmount||0}\n`; });
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const a = document.createElement('a'); a.href = window.URL.createObjectURL(blob); a.download = `AB_Parking_Data.csv`; a.click();
+    }
+
+    function printMode(mode) {
+        document.body.className = 'print-' + mode;
+        window.print();
+        setTimeout(() => document.body.className = '', 1000);
+    }
+
+    function openInvoice(idx) {
+        const v = vehicles[idx]; currentIndex = idx;
+        saveState('invoice', idx);
+        let days = 1; try { const p = v.date.split('/'); const d = Math.ceil(Math.abs(new Date() - new Date(p[2], p[1]-1, p[0])) / 86400000); if(d > 1) days = d; } catch(e){}
+        
+        const baseRate = 200; 
+        const taxable = (days * baseRate);
+        const cgst = taxable * 0.09;
+        const sgst = taxable * 0.09;
+        const total = taxable + cgst + sgst;
+
+        const office = generateBillHTML(v, days, taxable, cgst, sgst, total, "OFFICE COPY");
+        const customer = generateBillHTML(v, days, taxable, cgst, sgst, total, "CUSTOMER COPY");
+
+        document.getElementById('bill-content').innerHTML = `<div class="half-bill">${office}</div><div class="cut-line"></div><div class="half-bill">${customer}</div>`;
+        document.getElementById('dashboard-view').style.display = 'none';
+        document.getElementById('invoice-view').style.display = 'block';
+        autoFitScreen();
+    }
+
+    function generateBillHTML(v, days, taxable, cgst, sgst, total, type) {
+        return `
+            <div class="copy-label"><div class="copy-text">${type}</div></div>
+            <div class="header">
+                <h1>A.B. PARKING CENTRE</h1>
+                <div class="sub-header">GST INVOICE</div>
+                <div class="address">HISABI, AWALSIDDHI, AMDANGA, NORTH 24 PARGANAS<br>a.b.parking2017@gmail.com / abparking.abose@gmail.com<br>Contact Details:- ☎️ 03216291080 / 📱 9332443461</div>
+                <div style="font-size:11px; margin-top:2px;"><strong>GSTIN: 19IAWPB7060R2ZA</strong></div>
+            </div>
+            <div style="margin-top:10px; display:flex; justify-content:space-between; font-size:12px;">
+                <div><p><strong>Bill To:</strong> ${v.name}</p><p><strong>Vehicle:</strong> ${v.regn}</p></div>
+                <div style="text-align:right;"><p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p><p><strong>SL:</strong> ${v.sl}</p></div>
+            </div>
+            <table class="bill-table">
+                <tr><th>Description</th><th>HSN/SAC</th><th>Days</th><th>Rate</th><th>Taxable</th><th>CGST (9%)</th><th>SGST (9%)</th><th>Total</th></tr>
+                <tr>
+                    <td class="text-left">Parking Charges</td>
+                    <td>9967</td>
+                    <td>${days}</td>
+                    <td>200</td>
+                    <td>${taxable.toFixed(2)}</td>
+                    <td>${cgst.toFixed(2)}</td>
+                    <td>${sgst.toFixed(2)}</td>
+                    <td>${total.toFixed(2)}</td>
+                </tr>
+            </table>
+            <div class="bill-total">GRAND TOTAL: ₹${Math.round(total)}/-</div>
+            <div class="signatures" style="margin-top:30px;"><div class="sig-box">Depositor</div><div class="sig-box" style="text-align:right;">Cashier</div></div>
+        `;
+    }
+
+    function openGatePass(idx) {
+        const v = vehicles[idx]; currentIndex = idx;
+        saveState('gatepass', idx);
+        document.getElementById('pass-content').innerHTML = `<div class="header"><h1>A. B. PARKING CENTRE</h1><div class="sub-header">GATE PASS</div><div class="address">HISABI, AWALSIDDHI, AMDANGA, NORTH 24 PARGANAS<br>Contact Details:- ☎️ 03216291080 / 📱 9332443461</div></div><div class="pass-content"><h2 style="text-align:center;">ALLOWED TO EXIT</h2><p><strong>SL No:</strong> ${v.sl}</p><p><strong>Vehicle No:</strong> <span style="font-size:24px; font-weight:900;">${v.regn}</span></p><p><strong>Name:</strong> ${v.name}</p><p><strong>Exit Date:</strong> ${new Date().toLocaleString()}</p><hr><p><strong>Released To:</strong> <input type="text" class="release-input" placeholder="Enter Name..." value="${v.name}"></p></div><div class="signatures" style="margin-top:60px;"><div class="sig-box">Security</div><div class="sig-box" style="text-align:right;">Manager</div></div>`;
+        document.getElementById('dashboard-view').style.display = 'none';
+        document.getElementById('gatepass-view').style.display = 'block';
+        autoFitScreen();
+    }
+
+    function updateSL(val) { 
+        fillAll('sync-sl', val); 
+        localStorage.setItem('ab_parking_sl_no', val); 
+        generateQR(); 
+    }
+    
+    function updateSLDisplay() { 
+        let sl = localStorage.getItem('ab_parking_sl_no') || "ABPC-0000"; 
+        fillAll('sync-sl', sl); 
+    }
+    
+    function syncValue(src) { 
+        let k=""; src.classList.forEach(c=>{if(c.startsWith('sync-'))k=c}); 
+        if(k) document.querySelectorAll('.'+k).forEach(i=>{if(i!==src)i.value=src.value});
+        if(k=='sync-regn') syncRegnNo(src.value);
+        if(k=='sync-make') updateModels(src.value);
+        if(['sync-sl','sync-name','sync-regn'].includes(k)) generateQR();
+    }
+    function syncRadio(src) { let b=src.name.split('_')[0], v=src.value; ['g','b','c'].forEach(s=>{ let t=b+'_'+s; if(t!==src.name){ let r=document.querySelector(`input[name="${t}"][value="${v}"]`); if(r)r.checked=true; }}); }
+    function syncSelect(src) { let id=src.getAttribute('data-sync-id'); if(id) document.querySelectorAll(`select[data-sync-id="${id}"]`).forEach(s=>{if(s!==src)s.value=src.value}); }
+    
+    const vehicleData = { "Tata Motors": ["Ace", "Intra", "Yodha", "407", "709", "1512", "Signa"], "Ashok Leyland": ["Dost", "Bada Dost", "Partner", "Ecomet", "Boss", "Cheetah"], "Mahindra": ["Bolero Pickup", "Jeeto", "Supro", "Furio", "Blazo", "Maxx"], "Eicher": ["Pro 2000", "Pro 3000"], "BharatBenz": ["1015R", "1217C"], "Maruti Suzuki": ["Super Carry", "Eeco"], "Hyundai": ["Grand i10", "Xcent", "Aura"], "Force Motors": ["Traveller", "Trax"], "JCB": ["3DX", "4DX"] };
+
+    function updateModels(v) { const dl = document.getElementById('dynamic_models'); dl.innerHTML=""; if(vehicleData[v]) vehicleData[v].forEach(m=>{let o=document.createElement('option');o.value=m;dl.appendChild(o)}); }
+    
+    function syncRegnNo(v) { 
+        if(v) document.title = v.toUpperCase();
+        let c=v.replace(/\s/g,'').toUpperCase(); 
+        if(vehicleDatabase[c]) { 
+            let d=vehicleDatabase[c]; 
+            fillAll('sync-name', d.name);
+            fillAll('sync-ag', d.ag || '');
+            fillAll('sync-chassis', d.chassis || '');
+            fillAll('sync-engine', d.engine || '');
+            fillAll('sync-make', d.make || '');
+            fillAll('sync-model', d.model || '');
+            fillAll('sync-sized-by', d.sizedBy || ''); 
+            updateModels(d.make); 
+        } 
+        generateQR(); 
+    }
+    
+    function fillAll(k,v) { document.querySelectorAll('.'+k).forEach(i=>i.value=v); }
+    function generateQR() { let sl=document.querySelector('.sync-sl').value, nm=document.querySelector('.sync-name').value, rn=document.querySelector('.sync-regn').value; let u=`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`SL:${sl}|${rn}|${nm}`)}`; document.querySelectorAll('.qr-img').forEach(i=>i.src=u); }
+
+    function generateTriplicateForms() { const c = document.getElementById('forms-container'); c.innerHTML = getPage("YARD COPY","g") + getPage("OFFICE COPY","b") + getPage("CUSTOMER COPY","c"); }
+    function getPage(title, s) {
+        const rows = ["Front LH","Front RH","Rear In RH","Rear Out RH","Rear In LH","Rear Out LH","Middle RH","Middle LH","Inn Mid RH","Inn Mid LH","Hydr RH","Hydr LH","Spare Tyre"];
+        let tyres = rows.map((p,i)=>`<div class="tyre-row-complex"><span class="col-1-pos">${p}</span><div class="col-2-stat yn-group"><label><input type="radio" name="t${i}_${s}" value="avl" onclick="syncRadio(this)">Avl</label><label><input type="radio" name="t${i}_${s}" value="na" onclick="syncRadio(this)">NA</label></div><div class="col-3-make"><input type="text" class="tyre-make-input sync-tm-${i}" oninput="syncValue(this)" list="tyre_brands"></div><div class="col-4-cond"><select class="tyre-cond-select" data-sync-id="tc_${i}" onchange="syncSelect(this)"><option value="">Cond...</option><option>Good</option><option>Avg</option><option>Bad</option><option>Damage</option><option>Plane</option></select></div></div>`).join('');
+        const ex = [{n:"Wheel Range",i:1},{n:"Tyre Lever",i:2},{n:"Rod",i:3},{n:"Tape / FM",i:4},{n:"Pendrive",i:5},{n:"Rope",i:6},{n:"Tripol",i:7},{n:"Horn",i:8},{n:"Bulti",i:9},{n:"Stove",i:10},{n:"Torch",i:11},{n:"Speaker",i:12},{n:"DHOL",i:13},{n:"Jack",i:14}];
+        let l="",r=""; ex.forEach((e,i)=>{ let h=`<div class="extra-item-row"><span class="item-name">${e.n}</span><div class="yn-group"><label><input type="radio" name="x${e.i}_${s}" value="y" onclick="syncRadio(this)">Y</label><label><input type="radio" name="x${e.i}_${s}" value="n" onclick="syncRadio(this)">N</label></div><input type="text" class="qty-input sync-xq-${e.i}" oninput="syncValue(this)"></div>`; if(i<7)l+=h;else r+=h;});
+
+        return `
+        <div class="page-container">
+            <div class="watermark">
+                <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M499.99 306.9c-5.83-11.69-23.77-43.19-33.37-52.89l-55.77-55.77c-17.7-17.7-41.7-27.7-66.73-27.7h-176.2c-25.03 0-49.03 10-66.73 27.7l-55.77 55.77c-9.6 9.7-27.54 41.2-33.37 52.89C3.963 323.1.273 346.5.273 368.5v32c0 23.5 16.827 43.1 39.227 47.4v66.1c0 16.5 13.4 29.9 29.9 29.9h26.7c16.5 0 29.9-13.4 29.9-29.9v-24.6h260v24.6c0 16.5 13.4 29.9 29.9 29.9h26.7c16.5 0 29.9-13.4 29.9-29.9v-66.1c22.4-4.3 39.2-23.9 39.2-47.4v-32c0-22-3.69-45.4-11.71-61.6zM116.3 227.8c7.5-7.5 17.7-11.8 28.3-11.8h222.8c10.6 0 20.8 4.3 28.3 11.8l38.2 38.2H78.1l38.2-38.2zM80 432c-17.7 0-32-14.3-32-32s14.3-32 32-32 32 14.3 32 32-14.3 32-32 32zm352 0c-17.7 0-32-14.3-32-32s14.3-32 32-32 32 14.3 32 32-14.3 32-32 32z"/></svg>
+                <div class="watermark-text">A.B. PARKING CENTRE</div>
+            </div>
+            <div class="sl-no-container">
+                <span class="sl-no-text">Sl No.</span> 
+                <input type="text" class="sl-input sync-sl" oninput="updateSL(this.value)">
+            </div>
+            <div class="qr-box"><img src="" class="qr-img"></div>
+            <div class="copy-label"><div class="copy-text">${title}</div></div>
+            
+            <div class="header"><h1>A.B. PARKING CENTRE</h1><div class="sub-header">VEHICLE INVENTORY</div><div class="address">HISABI, AWALSIDDHI, AMDANGA, NORTH 24 PARGANAS, PIN.: 743221, W.B.<br>a.b.parking2017@gmail.com / abparking.abose@gmail.com<br>Contact Details:- ☎️ 03216291080 / 📱 9332443461</div></div>
+            
+            <div class="main-row">
+                <div class="col-left">
+                    <div class="field-row"><span class="label">Agreement No</span> <input type="text" class="sync-ag" oninput="syncValue(this)"></div>
+                    <div class="field-row"><span class="label">Borrower Name</span> <input type="text" class="sync-name" oninput="syncValue(this)"></div>
+                    <div class="field-row"><span class="label" style="font-size:10px;">Vehicle Registration Number</span> <input type="text" class="sync-regn" oninput="syncValue(this)" placeholder="Regn No..."></div>
+                    <div class="field-row"><span class="label">Chassis No</span> <input type="text" class="sync-chassis" oninput="syncValue(this)"></div>
+                    <div class="field-row"><span class="label">Engine No</span> <input type="text" class="sync-engine" oninput="syncValue(this)"></div>
+                    <div class="field-row"><span class="label">Make</span> <input type="text" class="sync-make" list="vehicle_makes" oninput="syncValue(this)"></div>
+                    <div class="field-row"><span class="label">Model</span> <input type="text" class="sync-model" list="dynamic_models" oninput="syncValue(this)"></div>
+                    <div class="field-row"><span class="label">Fip Gl No</span> <input type="text" class="def-cond" value="As per Condition"></div>
+                    <div class="field-row"><span class="label">Gear Box Sl No</span> <input type="text" class="def-cond" value="As per Condition"></div>
+                    <div class="field-row"><span class="label">Front Axis Sl No</span> <input type="text" class="def-cond" value="As per Condition"></div>
+                    <div class="field-row" style="white-space: nowrap;"><span class="label">Battery</span><div class="yn-group"><label><input type="radio" name="bat_${s}" value="avl" onclick="syncRadio(this)">Avl</label><label><input type="radio" name="bat_${s}" value="na" onclick="syncRadio(this)">NA</label></div><input type="text" list="battery_brands" class="sync-bat-make" oninput="syncValue(this)" style="width: 80px;"></div>
+                    <div class="field-row"><span class="label">Type of Body</span><div class="yn-group" style="width: 100%;"><label><input type="radio" name="body_${s}" value="p-side" onclick="syncRadio(this)">P-Side</label><label><input type="radio" name="body_${s}" value="sallan" onclick="syncRadio(this)">Sallan</label><label><input type="radio" name="body_${s}" value="bike" onclick="syncRadio(this)">Bike</label><label><input type="radio" name="body_${s}" value="other" onclick="syncRadio(this)">Other</label></div></div>
+                    <div class="field-row" style="white-space: nowrap;"><span class="label">Type of Load</span><div class="yn-group" style="margin-right:5px;"><label><input type="radio" name="load_${s}" value="empty" onclick="syncRadio(this)">EMPTY</label><label><input type="radio" name="load_${s}" value="loaded" onclick="syncRadio(this)">LOADED</label></div><input type="text" class="sync-load-det" oninput="syncValue(this)" style="width:100%"></div>
+                    <div class="field-row"><span class="label">Keys</span><div class="yn-group"><label><input type="radio" name="key_${s}" value="yes" onclick="syncRadio(this)">Yes</label><label><input type="radio" name="key_${s}" value="no" onclick="syncRadio(this)">No</label></div><input type="text" class="sync-key-qty" oninput="syncValue(this)" style="width:40px;text-align:center;"></div>
+                    <div class="field-row"><span class="label">Fuel</span> <input type="text" class="sync-fuel" oninput="syncValue(this)"></div>
+                    <span class="section-title">Vehicle Documents Repossessed :</span>
+                    ${generateDocs(s)}
+                    <div style="margin-top:5px;"><span class="label" style="display:block;">Remarks:</span><input type="text" class="sync-r1" oninput="syncValue(this)" style="margin-bottom:2px;"><input type="text" class="sync-r2" oninput="syncValue(this)" style="margin-bottom:2px;"><input type="text" class="sync-r3" oninput="syncValue(this)" style="margin-bottom:2px;"><input type="text" class="sync-r4" oninput="syncValue(this)" style="margin-bottom:2px;"><input type="text" class="sync-r5" oninput="syncValue(this)" style="margin-bottom:2px;"></div>
+                </div>
+                <div class="col-right">
+                    <div class="field-row"><span class="label">K M</span> <input type="text" class="sync-km" oninput="syncValue(this)"></div>
+                    <div class="field-row"><span class="label">Repossession Date</span> <input type="text" class="sync-date auto-filled" oninput="syncValue(this)"></div>
+                    <div class="field-row"><span class="label">Time</span> <input type="text" class="sync-time auto-filled" oninput="syncValue(this)"></div>
+                    <div class="field-row"><span class="label">Vehicle Location</span><input type="text" class="sync-loc" oninput="syncValue(this)"></div>
+                    <div class="field-row"><span class="label">Parked At :</span><input type="text" class="def-park" value="Company's authorised godown"></div>
+                    <div class="field-row"><span class="label">Vehicle Condition</span><div class="yn-group"><label><input type="radio" name="cond_${s}" value="run" onclick="syncRadio(this)">RUNNING</label><label><input type="radio" name="cond_${s}" value="tow" onclick="syncRadio(this)">TOWING</label></div></div>
+                    <div class="field-row" style="white-space: nowrap;"><span class="label">Starter Motor</span><div class="yn-group" style="margin-right: 15px;"><label><input type="radio" name="sm_${s}" value="avl" onclick="syncRadio(this)">Avl</label><label><input type="radio" name="sm_${s}" value="na" onclick="syncRadio(this)">NA</label></div><div class="yn-group" style="margin-left:10px;"><label><input type="radio" name="smw_${s}" value="ok" onclick="syncRadio(this)">Working</label><label><input type="radio" name="smw_${s}" value="no" onclick="syncRadio(this)">Not Working</label></div></div>
+                    <div class="field-row" style="white-space: nowrap;"><span class="label">Dynamo/Alt</span><div class="yn-group" style="margin-right: 15px;"><label><input type="radio" name="da_${s}" value="avl" onclick="syncRadio(this)">Avl</label><label><input type="radio" name="da_${s}" value="na" onclick="syncRadio(this)">NA</label></div><div class="yn-group" style="margin-left:10px;"><label><input type="radio" name="daw_${s}" value="ok" onclick="syncRadio(this)">Working</label><label><input type="radio" name="daw_${s}" value="no" onclick="syncRadio(this)">Not Working</label></div></div>
+                    <div class="section-title">Tyre Details :-</div>
+                    <div class="tyre-header"><span class="col-1-pos">Position</span><span class="col-2-stat">Status</span><span class="col-3-make">Make</span><span class="col-4-cond">Condition</span></div>
+                    ${tyres}
+                    <span class="section-title">List of Extra Items</span>
+                    <div class="extra-items-grid"><div class="extra-col">${l}</div><div class="extra-col">${r}</div></div>
+                </div>
+            </div>
+            <div class="disclaimer">N.B.: Please unload your goods which is loaded on vehicle within 24 hours otherwise <strong>Godown/Parking</strong> is not responsible for any loss or damage and any special item in the vehicle that Hirer's / Driver wants to be mentioned :<div class="warning">(NO GOLD NO MONEY ARE IN THIS VEHICLE)</div></div>
+            <div class="signatures">
+                <div class="sig-box"><strong>Signature of Staff</strong><br>Name: <input type="text" class="sync-staff-name" oninput="syncValue(this)" style="width:150px;"><br>Date: <input type="text" class="sync-date" oninput="syncValue(this)" style="width:100px;"><br>Vehicle No: <input type="text" class="sync-veh-bottom" style="width:100px;"><br>Sized By: <input type="text" list="financier_list" class="sync-sized-by" oninput="syncValue(this)" style="width:190px;" placeholder="Bank"><br>Branch: <input type="text" class="sync-branch" oninput="syncValue(this)" style="width:100px;"><br>Ph No: <input type="text" class="sync-ph" oninput="syncValue(this)" style="width:100px"></div>
+                <div class="sig-box" style="text-align:center;"><strong>Signature of Godown Keeper</strong><br><div style="height:100px"></div>Name: <input type="text" class="sync-keeper" style="width:100px"><br>Date: <input type="text" class="sync-date" style="width:100px"></div>
+                <div class="sig-box" style="text-align:right;"><strong>Signature Of Borrower / Driver</strong><br><br>Lic No: <input type="text" class="sync-lic" oninput="syncValue(this)" style="width:100px"><br>Date: <input type="text" class="sync-date" style="width:100px"></div>
+            </div>
+        </div>`;
+    }
+
+    function generateDocs(s) { const d = ["Regn Certificate","Tax Book","Insurance Cert","Permit","Pollution","CF"]; let h = ""; d.forEach((doc,i)=>{ h+=`<div class="field-row"><span class="label">${i+1}) ${doc}</span><div class="yn-group"><label><input type="radio" name="d${i+1}_${s}" value="y" onclick="syncRadio(this)">Yes</label><label><input type="radio" name="d${i+1}_${s}" value="n" onclick="syncRadio(this)">No</label></div></div>`;}); return h; }
+</script>
+
+<datalist id="dynamic_models"></datalist>
+<datalist id="vehicle_makes"><option value="Tata Motors"><option value="Ashok Leyland"><option value="Mahindra"><option value="Eicher"><option value="BharatBenz"><option value="Maruti Suzuki"><option value="Hyundai"><option value="Force Motors"><option value="SML Isuzu"><option value="JCB"></datalist>
+<datalist id="battery_brands"><option value="Exide"><option value="Amaron"><option value="Tata Green"><option value="Livguard"><option value="Luminous"><option value="SF Sonic"><option value="Powerzone"><option value="Okaya"><option value="Base"><option value="HBL"><option value="Other"></datalist>
+<datalist id="financier_list"><option value="HDFC Bank Ltd"><option value="State Bank of India (SBI)"><option value="ICICI Bank Ltd"><option value="Kotak Mahindra Bank"><option value="Axis Bank Ltd"><option value="IndusInd Bank"><option value="Cholamandalam Investment and Finance"><option value="Shriram Transport Finance"><option value="Mahindra & Mahindra Financial Services"><option value="Tata Capital Financial Services"><option value="Sundaram Finance Ltd"><option value="Bajaj Finserv Ltd"><option value="IDFC First Bank"><option value="AU Small Finance Bank"><option value="Yes Bank Ltd"><option value="Bank of Baroda"><option value="Canara Bank"><option value="Punjab National Bank (PNB)"><option value="Union Bank of India"><option value="TVS Credit Services"><option value="Hero Fincorp"></datalist>
+<datalist id="tyre_brands"><option value="MRF"><option value="Apollo"><option value="JK Tyre"><option value="CEAT"><option value="Bridgestone"><option value="Goodyear"><option value="Michelin"><option value="Continental"><option value="Birla"><option value="TVS Eurogrip"><option value="Ralco"><option value="Other"></datalist>
+
+</body>
+</html>
